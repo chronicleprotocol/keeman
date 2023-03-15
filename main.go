@@ -30,13 +30,13 @@ func main() {
 		"",
 		"input file path",
 	)
-	cmd.PersistentFlags().StringVarP(
-		&opts.OutputFile,
-		"output",
-		"o",
-		"",
-		"output file path",
-	)
+	// cmd.PersistentFlags().StringVarP(
+	// 	&opts.OutputFile,
+	// 	"output",
+	// 	"o",
+	// 	"",
+	// 	"output file path",
+	// )
 	cmd.PersistentFlags().BoolVarP(
 		&opts.Verbose,
 		"verbose",

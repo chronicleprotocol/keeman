@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/crypto"
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+	"github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/spf13/cobra"
 
 	"github.com/chronicleprotocol/keeman/eth"
@@ -66,15 +66,13 @@ const (
 )
 
 // Paths:
-//   m/<env=[0,1]>'/<purpose>/<role>/<idx>
+//   m/<env=[0,1,...]>'/<purpose>/<role>/<idx>
 //
-// Key purpose:
-//   eth:       m/0'/0/0/0
-//   p2p:       m/0'/1/0/0
-//   caps:      m/0'/2/0/0
-//   caps.shs:  m/0'/2/0
-//   caps.sign: m/0'/2/1
-//   onion:     m/0'/3/0/0
+// Key purpose (prefixes):
+//   eth:       m/0'/0
+//   libp2p:    m/0'/1
+//   caps:      m/0'/2
+//   onion:     m/0'/3
 //
 // Node roles:
 //   eth:     0
@@ -90,16 +88,19 @@ const (
 
 func NewDerive(opts *Options) *cobra.Command {
 	var prefix, password, format string
-	var index int
+	var lineNum int
 	cmd := &cobra.Command{
-		Use:     "derive [--prefix path] [--format eth|ssb|b32|onion] [--password] path...",
+		Use:     "derive [--prefix path] [--format " + strings.Join(FormatList, "|") + "] [--password] path...",
 		Aliases: []string{"der", "d"},
-		Short:   "Derive a key pair from the provided mnemonic phrase",
+		Short:   "Derive a key pair from the provided mnemonic phrase.",
 		RunE: func(_ *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				args = []string{"0"}
 			}
-			mnemonic, err := lineFromFile(opts.InputFile, index)
+			if lineNum < 1 {
+				return fmt.Errorf("line number must be greater than 0")
+			}
+			mnemonic, err := lineFromFile(opts.InputFile, lineNum-1)
 			if err != nil {
 				return err
 			}
@@ -134,27 +135,31 @@ func NewDerive(opts *Options) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().IntVar(
-		&index,
-		"index",
-		0,
-		"data index (i.e. which seed line to take from input)",
+	cmd.Flags().IntVarP(
+		&lineNum,
+		"line",
+		"l",
+		1,
+		"which seed line to take from the input file",
 	)
-	cmd.Flags().StringVar(
+	cmd.Flags().StringVarP(
 		&prefix,
 		"prefix",
+		"p",
 		"",
 		"derivation path prefix",
 	)
-	cmd.Flags().StringVar(
+	cmd.Flags().StringVarP(
 		&password,
 		"password",
+		"w",
 		"",
 		"encryption password",
 	)
-	cmd.Flags().StringVar(
+	cmd.Flags().StringVarP(
 		&format,
 		"format",
+		"f",
 		FormatKeystore,
 		"output format",
 	)
@@ -164,8 +169,8 @@ func NewDerive(opts *Options) *cobra.Command {
 const (
 	FormatKeystore   = "eth"
 	FormatSSB        = "ssb"
-	FormatSSBSHS     = "shs"
 	FormatSSBCaps    = "caps"
+	FormatSSBSHS     = "shs"
 	FormatBytes32    = "b32"
 	FormatPrivHex    = "privhex"
 	FormatLibP2P     = "libp2p"
@@ -174,6 +179,20 @@ const (
 	FormatOnionV3Pub = "onion-pub"
 	FormatOnionV3Sec = "onion-sec"
 )
+
+var FormatList = []string{
+	FormatKeystore,
+	FormatSSB,
+	FormatSSBCaps,
+	FormatSSBSHS,
+	FormatBytes32,
+	FormatPrivHex,
+	FormatLibP2P,
+	FormatOnionV3,
+	FormatOnionV3Adr,
+	FormatOnionV3Pub,
+	FormatOnionV3Sec,
+}
 
 func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string) ([]byte, error) {
 	switch format {

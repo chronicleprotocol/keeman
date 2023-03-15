@@ -23,19 +23,29 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
+const bitBlockSize = 32
+
 func GenerateSeed(opts *Options) *cobra.Command {
-	var bitSizeMultiplier int
+	var bitSizeMultiplier, bits int
 	cmd := &cobra.Command{
 		Use:     "generate",
 		Aliases: []string{"gen", "g"},
 		Args:    cobra.NoArgs,
-		Short:   "Generate HD seed phrase with a specific bit size",
+		Short:   "Generate HD seed phrase with a specific bit size.",
 		RunE: func(_ *cobra.Command, args []string) error {
+			if bits > 0 {
+				bitSizeMultiplier = bits / bitBlockSize
+				if bitBlockSize*bitSizeMultiplier != bits {
+					return fmt.Errorf("entropy size must be a multiple of %d", bitBlockSize)
+				}
+			}
 			if bitSizeMultiplier < 4 || bitSizeMultiplier > 8 {
 				return fmt.Errorf("entropy size multiplier must be between 4 and 8")
 			}
-			bitSize := 32 * bitSizeMultiplier
-			log.Printf("entropy bit size: %d * 32 = %d\n", bitSizeMultiplier, bitSize)
+
+			bitSize := bitBlockSize * bitSizeMultiplier
+			log.Printf("entropy bit size: %d * %d = %d\n", bitSizeMultiplier, bitBlockSize, bitSize)
+
 			entropy, err := bip39.NewEntropy(bitSize)
 			if err != nil {
 				return err
@@ -53,10 +63,17 @@ func GenerateSeed(opts *Options) *cobra.Command {
 	}
 	cmd.Flags().IntVarP(
 		&bitSizeMultiplier,
-		"entropy",
-		"n",
+		"multiplier",
+		"k",
 		4,
 		"number of 32 bit size blocks for entropy <4;8>",
+	)
+	cmd.Flags().IntVarP(
+		&bits,
+		"bits",
+		"b",
+		0,
+		"number of bits of entropy <128;256>",
 	)
 	return cmd
 }
