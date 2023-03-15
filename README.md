@@ -76,3 +76,27 @@ Global Flags:
   -i, --input string   input file path
   -v, --verbose        verbose logging
 ```
+
+## Key Derivation for Terraform [External](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) Module
+Let's assume you have the keeman source in the module. You can use the following code to derive keys from HD mnemonic in terraform.
+
+```terraform
+data "external" "keeman-derive-tf" {
+  working_dir = "${path.module}/keeman"
+  program     = ["go", "run", ".","derive-tf"]
+  query = {
+    mnemonic = var.hd_seed
+    path     = var.hd_path
+    password = var.password
+    format   = var.type
+  }
+}
+```
+and you will have the result in the `data.external.keeman-derive-tf.result` variable.
+```terraform
+data.external.keeman-derive-tf.result = {
+  output = "base64 encoded file content"
+  addr = "ethereum / tor / ssb address (depending on the format)"
+  path = "the m/... derivation path used for generating the key"
+}
+```
