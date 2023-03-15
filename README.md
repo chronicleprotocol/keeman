@@ -30,6 +30,16 @@ Derive a key pair from the provided mnemonic phrase:
 echo "your mnemonic phrase" | keeman derive
 ```
 
+Derive an Ethereum Key and encrypt with a static salt (creates reproducible keystore JSONs):
+```shell
+echo "your mnemonic phrase" | keeman derive --format eth-static
+```
+
+Create a plain text Ethereum key:
+```shell
+echo "your mnemonic phrase" | keeman derive --format eth-plain
+```
+
 Generate the mnemonic phrase and derive four keys in one command (and show the mnemonic phrase on stderr):
 ```shell
 keeman gen | tee >(cat >&2) | keeman der 0 1 2 3

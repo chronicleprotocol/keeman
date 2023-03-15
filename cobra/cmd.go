@@ -12,16 +12,16 @@ import (
 )
 
 type Options struct {
-	InputFile  string
-	OutputFile string
-	Verbose    bool
+	InputFile string
+	// OutputFile string
+	Verbose bool
 }
 
 func Command() (*Options, *cobra.Command) {
 	return &Options{}, &cobra.Command{
 		Use: "keeman",
 		CompletionOptions: cobra.CompletionOptions{
-			DisableDefaultCmd: true,
+			HiddenDefaultCmd: true,
 		},
 	}
 }

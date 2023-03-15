@@ -1,7 +1,9 @@
 package cobra
 
 import (
+	"bytes"
 	"crypto/ecdsa"
+	rand2 "crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -145,20 +147,22 @@ func NewDerive(opts *Options) *cobra.Command {
 		&format,
 		"format",
 		"f",
-		FormatKeystore,
+		FormatEth,
 		"output format",
 	)
 	return cmd
 }
 
 const (
-	FormatKeystore   = "eth"
+	FormatEth        = "eth"
+	FormatEthPlain   = "eth-plain"
+	FormatEthStatic  = "eth-static"
+	FormatLibP2P     = "libp2p"
 	FormatSSB        = "ssb"
 	FormatSSBCaps    = "caps"
 	FormatSSBSHS     = "shs"
 	FormatBytes32    = "b32"
 	FormatPrivHex    = "privhex"
-	FormatLibP2P     = "libp2p"
 	FormatOnionV3    = "onion"
 	FormatOnionV3Adr = "onion-adr"
 	FormatOnionV3Pub = "onion-pub"
@@ -166,13 +170,15 @@ const (
 )
 
 var FormatList = []string{
-	FormatKeystore,
+	FormatEth,
+	FormatEthPlain,
+	FormatEthStatic,
+	FormatLibP2P,
 	FormatSSB,
 	FormatSSBCaps,
 	FormatSSBSHS,
 	FormatBytes32,
 	FormatPrivHex,
-	FormatLibP2P,
 	FormatOnionV3,
 	FormatOnionV3Adr,
 	FormatOnionV3Pub,
@@ -181,6 +187,12 @@ var FormatList = []string{
 
 func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string) ([]byte, error) {
 	switch format {
+	case FormatLibP2P:
+		randBytes, err := seededRandBytesFunc(privateKey, 32)
+		if err != nil {
+			return nil, err
+		}
+		return hexEncodeBytes(randBytes()), nil
 	case FormatBytes32, FormatSSBSHS:
 		randBytes, err := seededRandBytesFunc(privateKey, 32)
 		if err != nil {
@@ -199,25 +211,43 @@ func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string
 			return nil, err
 		}
 		return json.Marshal(o)
-	case FormatKeystore:
-		key, err := eth.NewKeyWithID(privateKey)
+	case FormatEth:
+		o, err := eth.NewKeyWithID(privateKey)
 		if err != nil {
 			return nil, err
 		}
 		return keystore.EncryptKey(
-			key,
+			o,
 			password,
 			keystore.StandardScryptN,
 			keystore.StandardScryptP,
 		)
-	case FormatPrivHex:
-		return hexEncodeBytes(crypto.FromECDSA(privateKey)), nil
-	case FormatLibP2P:
-		randBytes, err := seededRandBytesFunc(privateKey, 32)
+	case FormatEthStatic:
+		o, err := eth.NewKeyWithID(privateKey)
 		if err != nil {
 			return nil, err
 		}
-		return hexEncodeBytes(randBytes()), nil
+		t := rand2.Reader
+		defer func() { rand2.Reader = t }()
+		bytesFunc, err := seededRandBytesFunc(privateKey, 48)
+		if err != nil {
+			return nil, err
+		}
+		rand2.Reader = bytes.NewReader(bytesFunc())
+		return keystore.EncryptKey(
+			o,
+			password,
+			keystore.StandardScryptN,
+			keystore.StandardScryptP,
+		)
+	case FormatEthPlain:
+		o, err := eth.NewKeyWithID(privateKey)
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(o)
+	case FormatPrivHex:
+		return hexEncodeBytes(crypto.FromECDSA(privateKey)), nil
 	case FormatOnionV3, FormatOnionV3Adr, FormatOnionV3Pub, FormatOnionV3Sec:
 		o, err := tor.NewOnion(crypto.FromECDSA(privateKey))
 		if err != nil {
