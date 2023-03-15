@@ -23,8 +23,9 @@ func NewList(opts *Options) *cobra.Command {
 	var all bool
 	var index int
 	cmd := &cobra.Command{
-		Use:   "list [--all]",
-		Short: "List word count and first word from the input, omitting the comments",
+		Use:     "list [--all]",
+		Aliases: []string{"l"},
+		Short:   "List word count and first word from the input, omitting the comments",
 		RunE: func(_ *cobra.Command, args []string) error {
 			if all {
 				lines, err := linesFromFile(opts.InputFile)

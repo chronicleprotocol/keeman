@@ -65,25 +65,28 @@ const (
 	ThunderCore               = "m/44'/1001'/0'/0"
 )
 
-// Old paths:
-// m/<env=[0,1]>'/<purpose>/<role>/<idx>
-// key purpose
-// eth.account path: m/0'/0/0/0
-// p2p path: m/0'/1/0/0
-// ssb path: m/0'/2/0/0
-// caps.shs path: m/0'/3/0
-// caps.sign path: m/0'/3/1
-// nodeRoles = {
-// "eth" = 0;
-// "boot" = 1;
-// "feed" = 2;
-// "feed_lb" = 3;
-// "bb" = 4;
-// "relay" = 5;
-// "spectre" = 6;
-// "ghost" = 7;
-// "monitor" = 8;
-// };
+// Paths:
+//   m/<env=[0,1]>'/<purpose>/<role>/<idx>
+//
+// Key purpose:
+//   eth:       m/0'/0/0/0
+//   p2p:       m/0'/1/0/0
+//   caps:      m/0'/2/0/0
+//   caps.shs:  m/0'/2/0
+//   caps.sign: m/0'/2/1
+//   onion:     m/0'/3/0/0
+//
+// Node roles:
+//   eth:     0
+//   boot:    1
+//   feed:    2
+//   feed_lb: 3
+//   bb:      4
+//   relay:   5
+//   spectre: 6
+//   ghost:   7
+//   monitor: 8
+//   lair:    9
 
 func NewDerive(opts *Options) *cobra.Command {
 	var prefix, password, format string

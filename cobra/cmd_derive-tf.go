@@ -37,7 +37,7 @@ func NewDeriveTf() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "derive-tf",
 		Aliases: []string{"dtf"},
-		Short:   "Derive keys from HD Mnemonic (Terraform External Data style)",
+		Short:   "Derive keys from HD mnemonic (terraform external data style).",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			var q query
 			err := json.NewDecoder(os.Stdin).Decode(&q)
@@ -70,7 +70,7 @@ func NewDeriveTf() *cobra.Command {
 				if err := json.Unmarshal(b, &ssb); err != nil {
 					return err
 				}
-				addr = ssb.ID.Ref()
+				addr = ssb.ID.String()
 			} else if q.Format == FormatLibP2P {
 				seed := make([]byte, hex.DecodedLen(len(b)))
 				_, err := hex.Decode(seed, b)

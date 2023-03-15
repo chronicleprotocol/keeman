@@ -20,18 +20,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/ssbc/go-ssb-refs"
 	"go.cryptoscope.co/ssb"
 
 	"github.com/chronicleprotocol/keeman/rand"
 )
 
-type Caps000 struct {
+type Caps struct {
 	Shs  []byte
 	Sign []byte
 }
 
-func (c Caps000) MarshalJSON() ([]byte, error) {
+func (c Caps) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Shs    string `json:"shs"`
 		Sign   string `json:"sign,omitempty"`
@@ -42,12 +41,12 @@ func (c Caps000) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func NewCaps(seed []byte) (*Caps000, error) {
+func NewCaps(seed []byte) (*Caps, error) {
 	randBytes, err := rand.SeededRandBytesGen(seed, 32)
 	if err != nil {
 		return nil, err
 	}
-	return &Caps000{
+	return &Caps{
 		Shs:  randBytes(),
 		Sign: randBytes(),
 	}, nil
@@ -64,7 +63,7 @@ func (s Secret) MarshalJSON() ([]byte, error) {
 }
 
 func NewSecret(b []byte) (*Secret, error) {
-	kp, err := ssb.NewKeyPair(bytes.NewReader(b), refs.RefAlgoFeedSSB1)
+	kp, err := ssb.NewKeyPair(bytes.NewReader(b), "ed25519")
 	if err != nil {
 		return nil, err
 	}
