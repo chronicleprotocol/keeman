@@ -51,14 +51,14 @@ func GenerateSeed(opts *Options) *cobra.Command {
 		"multiplier",
 		"k",
 		4,
-		"number of 32 bit size blocks for entropy <4;8>",
+		"number of 32 bit size blocks for entropy <4;8> (ignored when --bits is used)",
 	)
 	cmd.Flags().IntVarP(
 		&bits,
 		"bits",
 		"b",
 		0,
-		"number of bits of entropy <128;256>",
+		"number of bits of entropy <128;256> (has priority over --multiplier)",
 	)
 	return cmd
 }
