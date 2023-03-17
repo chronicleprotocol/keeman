@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"go.cryptoscope.co/ssb"
+	"github.com/ssbc/go-ssb"
 
 	"github.com/chronicleprotocol/keeman/rand"
 )
