@@ -13,9 +13,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/spf13/cobra"
 	refs "github.com/ssbc/go-ssb-refs"
+
+	"github.com/chronicleprotocol/keeman/hdwallet"
 )
 
 func NewDeriveTf() *cobra.Command {

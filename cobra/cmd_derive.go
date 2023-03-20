@@ -14,10 +14,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/spf13/cobra"
 
 	"github.com/chronicleprotocol/keeman/eth"
+	"github.com/chronicleprotocol/keeman/hdwallet"
 	"github.com/chronicleprotocol/keeman/rand"
 	"github.com/chronicleprotocol/keeman/ssb"
 	"github.com/chronicleprotocol/keeman/tor"
