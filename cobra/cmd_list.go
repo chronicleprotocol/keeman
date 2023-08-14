@@ -1,6 +1,9 @@
 package cobra
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 )
 
@@ -44,4 +47,9 @@ func NewList(opts *Options) *cobra.Command {
 		"all data",
 	)
 	return cmd
+}
+
+func printLine(l string) {
+	split := strings.Split(l, " ")
+	fmt.Println(len(split), split[0])
 }
