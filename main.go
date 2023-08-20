@@ -11,7 +11,7 @@ func main() {
 	cmd.PersistentFlags().StringVarP(
 		&opts.InputFile,
 		"input",
-		"i",
+		"c",
 		"",
 		"input file path",
 	)
@@ -24,7 +24,6 @@ func main() {
 	)
 	cmd.AddCommand(
 		cobra.NewDerive(opts),
-		cobra.NewDeriveTf(),
 		cobra.GenerateSeed(opts),
 		cobra.NewList(opts),
 	)

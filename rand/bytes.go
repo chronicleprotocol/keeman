@@ -12,10 +12,11 @@ func SeededRandBytesGen(seedBytes []byte, len int) (func() []byte, error) {
 	if err := binary.Read(buf, binary.BigEndian, &seed); err != nil {
 		return nil, err
 	}
-	rand.Seed(seed)
+	r := rand.New(rand.NewSource(seed))
+
 	return func() []byte {
 		rb := make([]byte, len)
-		rand.Read(rb) //nolint:gosec
+		r.Read(rb)
 		return rb
 	}, nil
 }

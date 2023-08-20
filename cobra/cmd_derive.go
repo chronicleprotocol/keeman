@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	rand2 "crypto/rand"
+	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
@@ -23,83 +26,82 @@ import (
 	"github.com/chronicleprotocol/keeman/tor"
 )
 
+var FormatList = []string{
+	formatSec,
+	formatPub,
+	formatAddr,
+	formatEth,
+	FormatEthStatic,
+	formatEthPlain,
+	formatSSB,
+	formatCaps,
+	formatOnionV3,
+}
+
 const (
-	Ethereum                  = "m/44'/60'/0'/0"
-	EthereumClassic           = "m/44'/61'/0'/0"
-	EthereumTestnetRopsten    = "m/44'/1'/0'/0"
-	EthereumLedger            = "m/44'/60'/0'"
-	EthereumClassicLedger     = "m/44'/60'/160720'/0"
-	EthereumLedgerLive        = "m/44'/60'"
-	EthereumClassicLedgerLive = "m/44'/61'"
-	RSKMainnet                = "m/44'/137'/0'/0"
-	Expanse                   = "m/44'/40'/0'/0"
-	Ubiq                      = "m/44'/108'/0'/0"
-	Ellaism                   = "m/44'/163'/0'/0"
-	EtherGem                  = "m/44'/1987'/0'/0"
-	Callisto                  = "m/44'/820'/0'/0"
-	EthereumSocial            = "m/44'/1128'/0'/0"
-	Musicoin                  = "m/44'/184'/0'/0"
-	EOSClassic                = "m/44'/2018'/0'/0"
-	Akroma                    = "m/44'/200625'/0'/0"
-	EtherSocialNetwork        = "m/44'/31102'/0'/0"
-	PIRL                      = "m/44'/164'/0'/0"
-	GoChain                   = "m/44'/6060'/0'/0"
-	Ether                     = "m/44'/1313114'/0'/0"
-	Atheios                   = "m/44'/1620'/0'/0"
-	TomoChain                 = "m/44'/889'/0'/0"
-	MixBlockchain             = "m/44'/76'/0'/0"
-	Iolite                    = "m/44'/1171337'/0'/0"
-	ThunderCore               = "m/44'/1001'/0'/0"
+	formatSec       = "sec"
+	formatPub       = "pub"
+	formatAddr      = "addr"
+	formatEth       = "eth"
+	FormatEthStatic = "eth-static" // Will generate the same JSON keystore file
+	formatEthPlain  = "eth-plain"
+	formatSSB       = "ssb"
+	formatCaps      = "caps"
+	formatOnionV3   = "onion"
 )
 
-// Paths:
-//   m/<env=[0,1,...]>'/<purpose>/<role>/<idx>
-//
-// Key purpose (prefixes):
-//   eth:       m/0'/0
-//   libp2p:    m/0'/1
-//   caps:      m/0'/2
-//   onion:     m/0'/3
-//
-// Node roles:
-//   eth:     0
-//   boot:    1
-//   feed:    2
-//   feed_lb: 3
-//   bb:      4
-//   relay:   5
-//   spectre: 6
-//   ghost:   7
-//   monitor: 8
-//   lair:    9
+const (
+	iteratorEthereum = "eth"
+	iteratorMetaMask = "mm"
+	iteratorLedger   = "ll"
+)
 
 func NewDerive(opts *Options) *cobra.Command {
-	var prefix, password, format string
-	var lineNum int
+	var prefix, suffix, password, format, iterator, encoding string
+	var lineNum, num int
 	cmd := &cobra.Command{
-		Use:     "derive [--prefix path] [--format " + strings.Join(FormatList, "|") + "] [--password] path...",
+		Use:     "derive [--prefix path] [--suffix path] [--format " + strings.Join(FormatList, "|") + "] [--password] path...",
 		Aliases: []string{"der", "d"},
-		Short:   "Derive a key pair from the provided mnemonic phrase.",
+		Short:   "Derive values from the provided mnemonic phrase",
 		RunE: func(_ *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				args = []string{"0"}
+			if len(args) > 0 && num > 0 {
+				return errors.New("cannot use --num with positional arguments")
+			} else if len(args) == 0 && num < 1 {
+				num = 1
 			}
+			// Generate the specified number of arguments to iterate over.
+			for i := 0; i < num; i++ {
+				args = append(args, fmt.Sprintf("%d", i))
+			}
+
 			if lineNum < 1 {
-				return fmt.Errorf("line number must be greater than 0")
+				return errors.New("line number must be greater than 0")
 			}
+			// Read mnemonic from <lineNum> line of the provided text file. First line number is 1.
 			mnemonic, err := lineFromFile(opts.InputFile, lineNum-1)
 			if err != nil {
 				return err
 			}
+			// Derive key pair from the mnemonic.
 			wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 			if err != nil {
 				return err
 			}
-			if prefix != "" && !strings.HasSuffix(prefix, "/") {
-				prefix += "/"
+
+			if iterator != "" && (prefix != "" || suffix != "") {
+				return errors.New("--iterator cannot be used with --prefix or --suffix")
+			} else if iterator+prefix+suffix == "" {
+				iterator = iteratorEthereum
 			}
+			// Use iterator name to override prefix and suffix.
+			prefix, suffix, format, encoding, err = applyIterator(iterator, prefix, suffix, format, encoding)
+			if err != nil {
+				return err
+			}
+
+			// Iterate over the provided paths and derive the key pairs.
 			for _, arg := range args {
-				dp, err := accounts.ParseDerivationPath(prefix + arg)
+				dp, err := combineDerivationPath(prefix, arg, suffix)
 				if err != nil {
 					return err
 				}
@@ -117,7 +119,22 @@ func NewDerive(opts *Options) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				fmt.Println(string(b))
+				var e encoder
+				switch encoding {
+				case "base64", "b64":
+					e = base64.StdEncoding
+				case "base64url", "b64u":
+					e = base64.URLEncoding
+				case "base32", "b32":
+					e = base32.StdEncoding
+				case "base32hex", "b32h":
+					e = base32.HexEncoding
+				case "hex":
+					e = &hexEncoder{}
+				case "":
+					e = &plainEncoder{}
+				}
+				fmt.Println(e.EncodeToString(b))
 			}
 			return nil
 		},
@@ -137,6 +154,13 @@ func NewDerive(opts *Options) *cobra.Command {
 		"derivation path prefix",
 	)
 	cmd.Flags().StringVarP(
+		&suffix,
+		"suffix",
+		"s",
+		"",
+		"derivation path suffix",
+	)
+	cmd.Flags().StringVarP(
 		&password,
 		"password",
 		"w",
@@ -147,108 +171,157 @@ func NewDerive(opts *Options) *cobra.Command {
 		&format,
 		"format",
 		"f",
-		FormatEth,
+		formatEth,
 		"output format",
+	)
+	cmd.Flags().StringVarP(
+		&iterator,
+		"iterator",
+		"i",
+		"",
+		"which iterator to use",
+	)
+	cmd.Flags().IntVarP(
+		&num,
+		"num",
+		"n",
+		0,
+		"how many addresses to generate (in addition to positional arguments)",
+	)
+	cmd.Flags().StringVarP(
+		&encoding,
+		"encode",
+		"e",
+		"",
+		"how many addresses to generate (in addition to positional arguments)",
 	)
 	return cmd
 }
 
-const (
-	FormatEth        = "eth"
-	FormatEthPlain   = "eth-plain"
-	FormatEthStatic  = "eth-static"
-	FormatLibP2P     = "libp2p"
-	FormatSSB        = "ssb"
-	FormatSSBCaps    = "caps"
-	FormatSSBSHS     = "shs"
-	FormatBytes32    = "b32"
-	FormatPrivHex    = "privhex"
-	FormatOnionV3    = "onion"
-	FormatOnionV3Adr = "onion-adr"
-	FormatOnionV3Pub = "onion-pub"
-	FormatOnionV3Sec = "onion-sec"
-)
-
-var FormatList = []string{
-	FormatEth,
-	FormatEthPlain,
-	FormatEthStatic,
-	FormatLibP2P,
-	FormatSSB,
-	FormatSSBCaps,
-	FormatSSBSHS,
-	FormatBytes32,
-	FormatPrivHex,
-	FormatOnionV3,
-	FormatOnionV3Adr,
-	FormatOnionV3Pub,
-	FormatOnionV3Sec,
+func applyIterator(iterator, prefix, suffix, format, encoding string) (string, string, string, string, error) {
+	switch iterator {
+	case iteratorEthereum, iteratorMetaMask:
+		p, ok := hdwallet.PrefixList["Ethereum"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+	case iteratorLedger:
+		p, ok := hdwallet.PrefixList["EthereumLedgerLive"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = "'/0/0"
+	case "f":
+		p, ok := hdwallet.PrefixList["Feed"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+	case "fo":
+		p, ok := hdwallet.PrefixList["FeedOnion"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+		format = formatOnionV3
+	case "r":
+		p, ok := hdwallet.PrefixList["Relay"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+	case "ro":
+		p, ok := hdwallet.PrefixList["RelayOnion"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+		format = formatOnionV3
+	case "m":
+		p, ok := hdwallet.PrefixList["Monitor"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+	case "mo":
+		p, ok := hdwallet.PrefixList["MonitorOnion"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+		format = formatOnionV3
+	case "bl":
+		p, ok := hdwallet.PrefixList["BootstrapLibP2P"]
+		if !ok {
+			return "", "", "", "", fmt.Errorf("prefix %q not found", prefix)
+		}
+		prefix = p
+		suffix = ""
+		format = formatSec
+		encoding = "hex"
+	default:
+		if iterator != "" {
+			return "", "", "", "", fmt.Errorf("iterator %q not found", iterator)
+		}
+	}
+	return prefix, suffix, format, encoding, nil
 }
 
 func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string) ([]byte, error) {
 	switch format {
-	case FormatLibP2P:
-		randBytes, err := seededRandBytesFunc(privateKey, 32)
+	case formatPub:
+		return crypto.FromECDSAPub(&privateKey.PublicKey), nil
+	case formatSec:
+		return crypto.FromECDSA(privateKey), nil
+	case formatAddr:
+		return []byte(crypto.PubkeyToAddress(privateKey.PublicKey).String()), nil
+	case formatEth, FormatEthStatic:
+		if format == FormatEthStatic {
+			defer func(r io.Reader) { rand2.Reader = r }(rand2.Reader)
+			bytesFunc, err := rand.SeededRandBytesGen(crypto.FromECDSA(privateKey), 64)
+			if err != nil {
+				return nil, err
+			}
+			rand2.Reader = bytes.NewReader(bytesFunc())
+		}
+		k, err := eth.NewKeyWithID(privateKey)
 		if err != nil {
 			return nil, err
 		}
-		return hexEncodeBytes(randBytes()), nil
-	case FormatBytes32, FormatSSBSHS:
-		randBytes, err := seededRandBytesFunc(privateKey, 32)
+		return keystore.EncryptKey(
+			k,
+			password,
+			keystore.StandardScryptN,
+			keystore.StandardScryptP,
+		)
+	case formatEthPlain:
+		k, err := eth.NewKeyWithID(privateKey)
 		if err != nil {
 			return nil, err
 		}
-		return b64Encode(randBytes()), nil
-	case FormatSSB:
+		return json.Marshal(k)
+	case formatSSB:
 		o, err := ssb.NewSecret(crypto.FromECDSA(privateKey))
 		if err != nil {
 			return nil, err
 		}
 		return json.Marshal(o)
-	case FormatSSBCaps:
+	case formatCaps:
 		o, err := ssb.NewCaps(crypto.FromECDSA(privateKey))
 		if err != nil {
 			return nil, err
 		}
 		return json.Marshal(o)
-	case FormatEth:
-		o, err := eth.NewKeyWithID(privateKey)
-		if err != nil {
-			return nil, err
-		}
-		return keystore.EncryptKey(
-			o,
-			password,
-			keystore.StandardScryptN,
-			keystore.StandardScryptP,
-		)
-	case FormatEthStatic:
-		o, err := eth.NewKeyWithID(privateKey)
-		if err != nil {
-			return nil, err
-		}
-		t := rand2.Reader
-		defer func() { rand2.Reader = t }()
-		bytesFunc, err := seededRandBytesFunc(privateKey, 48)
-		if err != nil {
-			return nil, err
-		}
-		rand2.Reader = bytes.NewReader(bytesFunc())
-		return keystore.EncryptKey(
-			o,
-			password,
-			keystore.StandardScryptN,
-			keystore.StandardScryptP,
-		)
-	case FormatEthPlain:
-		o, err := eth.NewKeyWithID(privateKey)
-		if err != nil {
-			return nil, err
-		}
-		return json.Marshal(o)
-	case FormatPrivHex:
-		return hexEncodeBytes(crypto.FromECDSA(privateKey)), nil
-	case FormatOnionV3, FormatOnionV3Adr, FormatOnionV3Pub, FormatOnionV3Sec:
+	case formatOnionV3:
 		o, err := tor.NewOnion(crypto.FromECDSA(privateKey))
 		if err != nil {
 			return nil, err
@@ -257,17 +330,37 @@ func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string
 	}
 	return nil, fmt.Errorf("unknown format: %s", format)
 }
-func hexEncodeBytes(b []byte) []byte {
-	buff := make([]byte, len(b)*2)
-	hex.Encode(buff, b)
-	return buff
+
+type encoder interface {
+	EncodeToString(src []byte) string
 }
-func b64Encode(b []byte) []byte {
-	enc := base64.StdEncoding
-	buff := make([]byte, enc.EncodedLen(len(b)))
-	enc.Encode(buff, b)
-	return buff
+
+type hexEncoder struct{}
+
+func (hexEncoder) EncodeToString(src []byte) string {
+	return hex.EncodeToString(src)
 }
-func seededRandBytesFunc(privateKey *ecdsa.PrivateKey, len int) (func() []byte, error) {
-	return rand.SeededRandBytesGen(crypto.FromECDSA(privateKey), len)
+
+type plainEncoder struct{}
+
+func (plainEncoder) EncodeToString(src []byte) string {
+	return string(src)
+}
+
+func combineDerivationPath(prefix string, arg string, suffix string) (accounts.DerivationPath, error) {
+	prefix = strings.TrimPrefix(prefix, "m/")
+	prefix = strings.Trim(prefix, "/")
+	if prefix != "" {
+		prefix += "/"
+	}
+	suffix = strings.Trim(suffix, "/")
+	if suffix != "" && !strings.HasPrefix(suffix, "'") {
+		suffix = "/" + suffix
+	}
+	p := "m/" + prefix + strings.Trim(arg, "/") + suffix
+	path, err := accounts.ParseDerivationPath(p)
+	if err != nil {
+		return nil, fmt.Errorf(" %s is an invalid derivation path: %w", p, err)
+	}
+	return path, err
 }
