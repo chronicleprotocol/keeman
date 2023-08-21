@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -64,35 +63,16 @@ func NewDerive(opts *Options) *cobra.Command {
 		Aliases: []string{"der", "d"},
 		Short:   "Derive values from the provided mnemonic phrase",
 		RunE: func(_ *cobra.Command, args []string) error {
-			if len(args) > 0 && num > 0 {
-				return errors.New("cannot use --num with positional arguments")
-			} else if len(args) == 0 && num < 1 {
-				num = 1
-			}
-			// Generate the specified number of arguments to iterate over.
-			for i := 0; i < num; i++ {
-				args = append(args, fmt.Sprintf("%d", i))
-			}
-
-			if lineNum < 1 {
-				return errors.New("line number must be greater than 0")
-			}
-			// Read mnemonic from <lineNum> line of the provided text file. First line number is 1.
-			mnemonic, err := lineFromFile(opts.InputFile, lineNum-1)
-			if err != nil {
-				return err
-			}
-			// Derive key pair from the mnemonic.
-			wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+			args, err := makeArgs(args, num)
 			if err != nil {
 				return err
 			}
 
-			if iterator != "" && (prefix != "" || suffix != "") {
-				return errors.New("--iterator cannot be used with --prefix or --suffix")
-			} else if iterator+prefix+suffix == "" {
-				iterator = iteratorEthereum
+			wallet, err := makeWallet(lineNum, opts.InputFile)
+			if err != nil {
+				return err
 			}
+
 			// Use iterator name to override prefix and suffix.
 			prefix, suffix, format, encoding, err = applyIterator(iterator, prefix, suffix, format, encoding)
 			if err != nil {
@@ -105,13 +85,7 @@ func NewDerive(opts *Options) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				log.Println(dp.String())
-				acc, err := wallet.Derive(dp, false)
-				if err != nil {
-					return err
-				}
-				log.Println(acc.Address.String())
-				privateKey, err := wallet.PrivateKey(acc)
+				privateKey, err := hdwallet.PrivateKey(wallet, dp)
 				if err != nil {
 					return err
 				}
@@ -119,22 +93,7 @@ func NewDerive(opts *Options) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				var e encoder
-				switch encoding {
-				case "base64", "b64":
-					e = base64.StdEncoding
-				case "base64url", "b64u":
-					e = base64.URLEncoding
-				case "base32", "b32":
-					e = base32.StdEncoding
-				case "base32hex", "b32h":
-					e = base32.HexEncoding
-				case "hex":
-					e = &hexEncoder{}
-				case "":
-					e = &plainEncoder{}
-				}
-				fmt.Println(e.EncodeToString(b))
+				fmt.Println(chooseEncoder(encoding).EncodeToString(b))
 			}
 			return nil
 		},
@@ -193,12 +152,66 @@ func NewDerive(opts *Options) *cobra.Command {
 		"encode",
 		"e",
 		"",
-		"how many addresses to generate (in addition to positional arguments)",
+		"encoding to use",
 	)
 	return cmd
 }
 
+func makeArgs(args []string, num int) ([]string, error) {
+	if len(args) > 0 && num > 0 {
+		return nil, errors.New("cannot use --num with positional arguments")
+	} else if len(args) == 0 && num < 1 {
+		num = 1
+	}
+	// Generate the specified number of arguments to iterate over.
+	for i := 0; i < num; i++ {
+		args = append(args, fmt.Sprintf("%d", i))
+	}
+	return args, nil
+}
+
+func makeWallet(lineNum int, inputFile string) (*hdwallet.Wallet, error) {
+	if lineNum < 1 {
+		return nil, errors.New("line number must be greater than 0")
+	}
+	// Read mnemonic from <lineNum> line of the provided text file. First line number is 1.
+	mnemonic, err := lineFromFile(inputFile, lineNum-1)
+	if err != nil {
+		return nil, err
+	}
+	// Derive key pair from the mnemonic.
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	if err != nil {
+		return nil, err
+	}
+	return wallet, nil
+}
+
+func chooseEncoder(encoding string) encoder {
+	var e encoder
+	switch encoding {
+	case "base64", "b64":
+		e = base64.StdEncoding
+	case "base64url", "b64u":
+		e = base64.URLEncoding
+	case "base32", "b32":
+		e = base32.StdEncoding
+	case "base32hex", "b32h":
+		e = base32.HexEncoding
+	case "hex":
+		e = &hexEncoder{}
+	case "":
+		e = &plainEncoder{}
+	}
+	return e
+}
+
 func applyIterator(iterator, prefix, suffix, format, encoding string) (string, string, string, string, error) {
+	if iterator != "" && (prefix != "" || suffix != "") {
+		return "", "", "", "", errors.New("--iterator cannot be used with --prefix or --suffix")
+	} else if iterator+prefix+suffix == "" {
+		iterator = iteratorEthereum
+	}
 	switch iterator {
 	case iteratorEthereum, iteratorMetaMask:
 		p, ok := hdwallet.PrefixList["Ethereum"]
@@ -276,6 +289,24 @@ func applyIterator(iterator, prefix, suffix, format, encoding string) (string, s
 	return prefix, suffix, format, encoding, nil
 }
 
+func combineDerivationPath(prefix string, arg string, suffix string) (accounts.DerivationPath, error) {
+	prefix = strings.TrimPrefix(prefix, "m/")
+	prefix = strings.Trim(prefix, "/")
+	if prefix != "" {
+		prefix += "/"
+	}
+	suffix = strings.Trim(suffix, "/")
+	if suffix != "" && !strings.HasPrefix(suffix, "'") {
+		suffix = "/" + suffix
+	}
+	p := "m/" + prefix + strings.Trim(arg, "/") + suffix
+	path, err := accounts.ParseDerivationPath(p)
+	if err != nil {
+		return nil, fmt.Errorf(" %s is an invalid derivation path: %w", p, err)
+	}
+	return path, err
+}
+
 func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string) ([]byte, error) {
 	switch format {
 	case formatPub:
@@ -345,22 +376,4 @@ type plainEncoder struct{}
 
 func (plainEncoder) EncodeToString(src []byte) string {
 	return string(src)
-}
-
-func combineDerivationPath(prefix string, arg string, suffix string) (accounts.DerivationPath, error) {
-	prefix = strings.TrimPrefix(prefix, "m/")
-	prefix = strings.Trim(prefix, "/")
-	if prefix != "" {
-		prefix += "/"
-	}
-	suffix = strings.Trim(suffix, "/")
-	if suffix != "" && !strings.HasPrefix(suffix, "'") {
-		suffix = "/" + suffix
-	}
-	p := "m/" + prefix + strings.Trim(arg, "/") + suffix
-	path, err := accounts.ParseDerivationPath(p)
-	if err != nil {
-		return nil, fmt.Errorf(" %s is an invalid derivation path: %w", p, err)
-	}
-	return path, err
 }

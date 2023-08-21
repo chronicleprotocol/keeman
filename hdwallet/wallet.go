@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"os"
 	"sync"
@@ -555,4 +556,14 @@ func (w *Wallet) deriveAddress(path accounts.DerivationPath) (common.Address, er
 // removeAtIndex removes an account at index.
 func removeAtIndex(accts []accounts.Account, index int) []accounts.Account {
 	return append(accts[:index], accts[index+1:]...)
+}
+
+func PrivateKey(wallet *Wallet, dp accounts.DerivationPath) (*ecdsa.PrivateKey, error) {
+	log.Println(dp.String())
+	privateKey, err := wallet.derivePrivateKey(dp)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(crypto.PubkeyToAddress(privateKey.PublicKey).String())
+	return privateKey, nil
 }
