@@ -36,7 +36,7 @@ echo "your mnemonic phrase" | keeman derive --format eth-plain
 Generate and save a service keys to files usable by tor
 ```shell
 MNEMONIC=$(keeman generate)
-keeman derive --format onion <<<"$MNEMONIC" | jq -r .hostname | base64 -d > hostname
+keeman derive --format onion <<<"$MNEMONIC" | jq -r .hostname > hostname
 keeman derive --format onion <<<"$MNEMONIC" | jq -r .public_key | base64 -d > hs_ed25519_public_key
 keeman derive --format onion <<<"$MNEMONIC" | jq -r .secret_key | base64 -d > hs_ed25519_secret_key
 ```
