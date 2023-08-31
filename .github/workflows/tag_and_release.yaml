@@ -1,0 +1,17 @@
+name: Tag and release
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-on-push:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_BOT_GH_TOKEN }}
+    steps:
+      - uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: patch
+          release_body: ":rocket: Release Notes! :fireworks: "
+          use_github_release_notes: true
