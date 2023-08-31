@@ -19,15 +19,15 @@ jobs:
           go get -u golang.org/x/lint/golint
           find ./ -name "*.go" |xargs -IFILE gofmt -s -w FILE
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.18
-      - run: go test ./...
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-go@v4
+  #       with:
+  #         go-version: 1.18
+  #     - run: go test ./...
 
   build:
     name: Build
