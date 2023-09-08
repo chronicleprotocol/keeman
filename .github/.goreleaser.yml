@@ -1,0 +1,20 @@
+env:
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: .
+    id: "keeman"
+    binary: keeman
+    goos:
+      - linux
+      - darwin
+
+archives:
+  - id: "keeman"
+    builds:
+      - keeman
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
