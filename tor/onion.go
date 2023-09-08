@@ -20,9 +20,9 @@ type Onion struct {
 }
 
 const (
-	hostnameFile = "hostname"
-	v3PublicFile = "hs_ed25519_public_key"
-	v3SecretFile = "hs_ed25519_secret_key" //nolint:gosec
+	hostnameFile = "hostname"              //nolint:unused
+	v3PublicFile = "hs_ed25519_public_key" //nolint:unused
+	v3SecretFile = "hs_ed25519_secret_key" //nolint:unused,gosec
 
 	v3PublicTitle = "ed25519v1-public: type0"
 	v3SecretTitle = "ed25519v1-secret: type0" //nolint:gosec
