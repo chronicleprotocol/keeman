@@ -11,7 +11,7 @@ require (
 	github.com/ssbc/go-ssb v0.2.2-0.20230308230318-d6db27d1852d
 	github.com/stretchr/testify v1.8.4
 	github.com/tyler-smith/go-bip39 v1.1.0
-	golang.org/x/crypto v0.12.0
+	golang.org/x/crypto v0.17.0
 )
 
 require (
@@ -47,7 +47,7 @@ require (
 	go.cryptoscope.co/nocomment v0.0.0-20210520094614-fb744e81f810 // indirect
 	go.mindeco.de v1.12.0 // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
