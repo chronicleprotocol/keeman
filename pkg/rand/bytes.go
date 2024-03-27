@@ -2,9 +2,12 @@ package rand
 
 import (
 	"bytes"
+	cryptoRand "crypto/rand"
 	"encoding/binary"
 	"math/rand"
 )
+
+var Reader = cryptoRand.Reader
 
 func SeededRandBytesGen(seedBytes []byte, len int) (func() []byte, error) {
 	var seed int64
@@ -13,7 +16,6 @@ func SeededRandBytesGen(seedBytes []byte, len int) (func() []byte, error) {
 		return nil, err
 	}
 	r := rand.New(rand.NewSource(seed))
-
 	return func() []byte {
 		rb := make([]byte, len)
 		r.Read(rb)

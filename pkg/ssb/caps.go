@@ -7,7 +7,7 @@ import (
 
 	"github.com/ssbc/go-ssb"
 
-	"github.com/chronicleprotocol/keeman/rand"
+	"github.com/chronicleprotocol/keeman/pkg/rand"
 )
 
 type Caps struct {

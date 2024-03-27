@@ -54,14 +54,85 @@ Usage:
 
 Available Commands:
   derive      Derive values from the provided mnemonic phrase
-  generate    Generate HD seed phrase with a specific bit size.
+  generate    Generate HD seed phrase with a specific bit size
   help        Help about any command
-  list        List word count and first word from the input, omitting the comments.
+  list        List word count and first word from the input, omitting the comments
 
 Flags:
   -h, --help           help for keeman
-  -c, --input string   input file path
+  -i, --input string   input file path
   -v, --verbose        verbose logging
 
 Use "keeman [command] --help" for more information about a command.
+```
+
+## Help Page for `generate` Command
+
+```text
+Generate HD seed phrase with a specific bit size
+
+Usage:
+  keeman generate [flags]
+
+Aliases:
+  generate, gen, g
+
+Flags:
+  -b, --bits int         number of bits of entropy <128;256> (has priority over --multiplier)
+  -f, --format string    output format (default "mnemonic")
+  -h, --help             help for generate
+  -l, --lang string      word list language (default "en")
+  -k, --multiplier int   number of 32 bit size blocks for entropy <4;8> (ignored when --bits is used) (default 4)
+
+Global Flags:
+  -i, --input string   input file path
+  -v, --verbose        verbose logging
+```
+
+## Help Page for `derive` Command
+
+```text
+Derive values from the provided mnemonic phrase
+
+Usage:
+  keeman derive [--prefix path] [--suffix path] [--format sec|pub|addr|eth|eth-static|eth-plain|ssb|caps|onion] [--password] path... [flags]
+
+Aliases:
+  derive, der, d
+
+Flags:
+  -e, --encode string     encoding to use
+  -f, --format string     output format (default "eth")
+  -h, --help              help for derive
+  -t, --iterator string   which iterator to use
+  -l, --line int          which seed line to take from the input file (default 1)
+  -n, --num int           how many addresses to generate (in addition to positional arguments)
+  -w, --password string   encryption password
+  -p, --prefix string     derivation path prefix
+  -s, --suffix string     derivation path suffix
+
+Global Flags:
+  -i, --input string   input file path
+  -v, --verbose        verbose logging
+```
+
+## Help Page for `list` Command
+
+```text
+List word count and first word from the input, omitting the comments
+
+Usage:
+  keeman list [--all] [flags]
+
+Aliases:
+  list, l
+
+Flags:
+  -a, --all         all data
+  -h, --help        help for list
+      --index int   data index
+
+Global Flags:
+  -i, --input string   input file path
+  -v, --verbose        verbose logging
 ```

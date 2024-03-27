@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chronicleprotocol/keeman/txt"
+	"github.com/chronicleprotocol/keeman/pkg/txt"
 )
 
 type Options struct {

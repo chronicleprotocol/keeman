@@ -3,7 +3,6 @@ package cobra
 import (
 	"bytes"
 	"crypto/ecdsa"
-	rand2 "crypto/rand"
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
@@ -18,11 +17,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
-	"github.com/chronicleprotocol/keeman/eth"
-	"github.com/chronicleprotocol/keeman/hdwallet"
-	"github.com/chronicleprotocol/keeman/rand"
-	"github.com/chronicleprotocol/keeman/ssb"
-	"github.com/chronicleprotocol/keeman/tor"
+	"github.com/chronicleprotocol/keeman/pkg/eth"
+	"github.com/chronicleprotocol/keeman/pkg/hdwallet"
+	"github.com/chronicleprotocol/keeman/pkg/rand"
+	"github.com/chronicleprotocol/keeman/pkg/ssb"
+	"github.com/chronicleprotocol/keeman/pkg/tor"
 )
 
 var FormatList = []string{
@@ -42,7 +41,7 @@ const (
 	formatPub       = "pub"
 	formatAddr      = "addr"
 	formatEth       = "eth"
-	FormatEthStatic = "eth-static" // Will generate the same JSON keystore file
+	FormatEthStatic = "eth-static" // Will generate the same JSON keystore file each time
 	formatEthPlain  = "eth-plain"
 	formatSSB       = "ssb"
 	formatCaps      = "caps"
@@ -136,7 +135,7 @@ func NewDerive(opts *Options) *cobra.Command {
 	cmd.Flags().StringVarP(
 		&iterator,
 		"iterator",
-		"i",
+		"t",
 		"",
 		"which iterator to use",
 	)
@@ -317,12 +316,12 @@ func formattedBytes(format string, privateKey *ecdsa.PrivateKey, password string
 		return []byte(crypto.PubkeyToAddress(privateKey.PublicKey).String()), nil
 	case formatEth, FormatEthStatic:
 		if format == FormatEthStatic {
-			defer func(r io.Reader) { rand2.Reader = r }(rand2.Reader)
+			defer func(r io.Reader) { rand.Reader = r }(rand.Reader)
 			bytesFunc, err := rand.SeededRandBytesGen(crypto.FromECDSA(privateKey), 64)
 			if err != nil {
 				return nil, err
 			}
-			rand2.Reader = bytes.NewReader(bytesFunc())
+			rand.Reader = bytes.NewReader(bytesFunc())
 		}
 		k, err := eth.NewKeyWithID(privateKey)
 		if err != nil {

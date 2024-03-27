@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/chronicleprotocol/keeman/cobra"
+	"github.com/chronicleprotocol/keeman/pkg/cobra"
 )
 
 func main() {
@@ -11,7 +11,7 @@ func main() {
 	cmd.PersistentFlags().StringVarP(
 		&opts.InputFile,
 		"input",
-		"c",
+		"i",
 		"",
 		"input file path",
 	)
