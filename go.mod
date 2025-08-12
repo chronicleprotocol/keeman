@@ -1,19 +1,19 @@
 module github.com/chronicleprotocol/keeman
 
-go 1.22
+go 1.23.0
 
-toolchain go1.22.1
+toolchain go1.24.6
 
 require (
-	github.com/btcsuite/btcd v0.24.0
-	github.com/btcsuite/btcd/btcutil v1.1.5
+	github.com/btcsuite/btcd v0.24.2
+	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/ethereum/go-ethereum v1.13.14
 	github.com/google/uuid v1.6.0
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.9.1
 	github.com/ssbc/go-ssb v0.2.2-0.20230308230318-d6db27d1852d
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/tyler-smith/go-bip39 v1.1.0
-	golang.org/x/crypto v0.21.0
+	golang.org/x/crypto v0.41.0
 )
 
 require (
@@ -43,7 +43,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/ssbc/go-luigi v0.3.7-0.20230119190114-bd28e676fa99 // indirect
 	github.com/ssbc/go-metafeed v1.1.3 // indirect
 	github.com/ssbc/go-muxrpc/v2 v2.0.14-0.20221111190521-10382533750c // indirect
@@ -56,7 +56,7 @@ require (
 	go.mindeco.de v1.12.0 // indirect
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
