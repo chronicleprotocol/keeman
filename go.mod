@@ -1,6 +1,6 @@
 module github.com/chronicleprotocol/keeman
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.6
 
@@ -13,7 +13,7 @@ require (
 	github.com/ssbc/go-ssb v0.2.2-0.20230308230318-d6db27d1852d
 	github.com/stretchr/testify v1.10.0
 	github.com/tyler-smith/go-bip39 v1.1.0
-	golang.org/x/crypto v0.41.0
+	golang.org/x/crypto v0.45.0
 )
 
 require (
@@ -53,6 +53,6 @@ require (
 	go.cryptoscope.co/nocomment v0.0.0-20210520094614-fb744e81f810 // indirect
 	go.mindeco.de v1.12.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
