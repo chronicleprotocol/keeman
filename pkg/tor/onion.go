@@ -3,6 +3,7 @@ package tor
 import (
 	"bytes"
 	"crypto/ed25519"
+	"crypto/sha3"
 	"crypto/sha512"
 	"encoding/base32"
 	"encoding/json"
@@ -10,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-	"golang.org/x/crypto/sha3"
 )
 
 type Onion struct {
